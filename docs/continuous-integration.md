@@ -1,16 +1,15 @@
 # introduction
-Specter-Desktop is using GitLab, Travis-CI and GitHub-Actions for continuous integration purposes but GitHub-actions only for Blackify so far. It might be more effort using more than one CI-approach but it makes us also more resilient. 
-GitLab and Travis-CI have both advantages and disadvantages so ... let's use both!
+Specter-Desktop is using GitLab, Cirrus and GitHub-Actions for continuous integration purposes but GitHub-actions only for Blackify so far. It might be more effort using more than one CI-approach but it makes us also more resilient. 
+GitLab and Cirrus have both advantages and disadvantages so ... let's use both!
 GitLab:
 * is completely open Source for server- and clients
 * the gitlab-runner can run docker and is itself running on docker
 * but does not support Pull-Requests
 * needs to have bitcoind in a prepared docker-container which binds the build to that version
 
-Travis-CI:
+Cirrus-CI:
 * supports the PR-model
-* quite easy to setup even without docker
-* enables to test against any specific version of bitcoind we would like to
+* quite easy to setup even though it's using docker
 
 # Gitlab
 
@@ -35,7 +34,11 @@ start_bitcoind-function:
 
 # Travis-CI
 
-Travis-CI setup is very straightforward. As we're using the build-cache, the bitcoind sources and build is cached. Therefore such a build would only take 2 minutes. If the master-branch has new commits, bitcoind gets automatically rebuilt and the tests are running against the new version (tests/install_bitcoind.sh).py
+We're no longer using travis-ci due to the abuse-detection-system going wild on us.
+
+# Cirrus-CI
+
+[Cirrus-CI](https://cirrus-ci.org) is used by Bitcoin-Core and HWI and is a quite good replacement for travis. We're using it only for PRs so far. The [../.cirrus.yml] file defines the build. We have two task, one for pytest and one for the cypress-tests.
 
 # Releasing
 
@@ -45,15 +48,13 @@ We're mostly releasing automatically. Currently the following artifacts are rele
 * specterd (daemon) is a binary for kicking off the specter-desktop service on the command-line. We have binaries for windows, Linux and macOS
 * We have an Electron-App which we're also releasing for Windows, Linux and MacOS. Unfortunately the macOS build is not yet automated
 * We release a pip-package
-* We release docker-images, these are also not yet automated
+* Usually some time after the release, the lncm is releasing [docker-images](https://hub.docker.com/r/lncm/specter-desktop). Very much appreciated, even though we can't guarantee for them, obviously.
 
 # How we release
 As we have a strict build-only-on-private-hardware build-policy, we're using GitLab private runners in order to build our releases. In order to test and develop the releasing automation, people can setup GitLab-projects which are syncing from their GitHub-forks. With such a setup it's possible to create test-releases and therefore test the whole procedure end-to-end.
 
 The automation of that kicks in if someone creates a tag which is named like "vX.Y.Z". This is specified in the gitlab-ci.yml. The release-job will only be triggered in cases of tags. One step will also check that the tag follows the convention above.
 The package upload will need a token. How to obtain the token is described in the packaging-tutorial. It's injected via GitLab-variables. ToDo: put the token on a trusted build-node.
-
-The alternative would have been to use travis-ci for releasing. In that case we would encrypt the token with a private-key from Travis and commit to the repository. This looks more safe to me then the above scenario but less safe then the todo, where we're storing the token on the build-node.
 
 ## pyinstaller system-dependent binaries
 The [pyinstaller directory](../pyinstaller) contains scripts to create the platform-specific binaries (plus electron) to use specter-desktop as a desktop-software. Some of them are created and uploaded to [GitHub-releases](https://github.com/cryptoadvance/specter-desktop/releases) via more or less special build-agents.

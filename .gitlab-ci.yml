@@ -12,6 +12,7 @@ cache:
   paths:
     - .cache/pip
     - .env/
+    - ./tests/elements
 
 stages:
   - testing
@@ -24,11 +25,23 @@ before_script:
   - python -V  # Print out python version for debugging
   - apt update
   - apt install -y libusb-1.0-0-dev libudev-dev # usb-support in hidapi
-  - pip3 install virtualenv
+# This doesn't get cached in gitlab but we don't need it anyway for now:
+#  - ./tests/install_bitcoind.sh --debug --elements compile
+  - pip3 install --upgrade virtualenv
   - virtualenv --python=python3 .env
   - source .env/bin/activate
 
-test:
+check:
+  stage: testing
+  # We simply check here whether all the tests on github are completed and green
+  script:
+    - ./utils/release.sh wait_on_master || exit 1 # that command will have a non-0 exit-value if not everything is green
+
+# jobs with a preceding . like .test are hidden jobs and are not executed. I leave them in here as
+# we might want to reactivate them in the case that github explodes or something.
+# So effectively, gitlab is currently only used for releasing.
+
+.test:
  stage: testing
  # We assume here that people who want to get code into the master-branch are
  # relying on PRs and people who are working on gitlab-forks are working
@@ -45,8 +58,8 @@ test:
    # - python3 tests/conftest.py 
    - py.test --cov-report term --cov cryptoadvance --docker
 
-test-cypress:
-  image: registry.gitlab.com/k9ert/specter-desktop/cypress-python:20201111231032
+.test-cypress:
+  image: registry.gitlab.com/cryptoadvance/specter-desktop/cypress-python:20210424
   stage: testing
   script:
     # start the server in the background
